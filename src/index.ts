@@ -118,6 +118,41 @@ if (fs.existsSync(swaggerFilePath)) {
           },
         },
       },
+      '/api/system/reboot': {
+        post: {
+          tags: ['System'],
+          summary: 'Reboot the system',
+          description: 'Reboots the device',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['reason'],
+                  properties: {
+                    reason: { type: 'string', description: 'Reason for reboot' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Reboot initiated successfully',
+              content: { 'application/json': { schema: { type: 'object' } } },
+            },
+            '400': {
+              description: 'Invalid request',
+              content: { 'application/json': { schema: { type: 'object' } } },
+            },
+            '500': {
+              description: 'Server error',
+              content: { 'application/json': { schema: { type: 'object' } } },
+            },
+          },
+        },
+      },
       '/api/wifi/get-wifi-details': {
         get: {
           tags: ['Network - WiFi'],
@@ -527,6 +562,18 @@ app.get('/api/device/get-device-info', async (req: Request, res: Response) => {
     });
   }
 });
+// Device Control APIs
+app.post('/api/device/system-reboot', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'system-reboot', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
 
 app.get('/api/device/get-aio-bar-id', async (req: Request, res: Response) => {
   try {
@@ -744,6 +791,20 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     success: false,
     error: { code: 'SERVER_ERROR', message: err.message },
   });
+});
+
+// System APIs
+app.post('/api/system/reboot', async (req: Request, res: Response) => {
+  try {
+    const { reason } = req.body;
+    const response = await grpcClient.handleRequest('command-control', 'system-reboot', { reason: reason || 'User requested reboot' });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
 });
 
 // Start server

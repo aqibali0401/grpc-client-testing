@@ -1,10 +1,10 @@
 ﻿import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
-// Load proto definition - path from dist folder
-// dist/grpc-client.js -> .. -> grpc-client -> .. -> mithun-package -> edge-microservice/proto/edge.proto
-const PROTO_PATH = join(__dirname, '../../edge-microservice/proto/edge.proto');
+// Load proto definition - using process.cwd() for correct path resolution
+// The proto file is located at: ../Edge-moduler/proto/edge.proto from grpc-client root
+const PROTO_PATH = resolve(process.cwd(), '../Edge-moduler/proto/edge.proto');
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
