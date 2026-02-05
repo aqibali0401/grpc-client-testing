@@ -2,12 +2,9 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import GrpcClient from './grpc-client';
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
-import path from 'path';
-import fs from 'fs';
+import { swaggerDocument } from './swagger-config';
 
 declare module 'swagger-ui-express';
-declare module 'yamljs';
 
 const app: Express = express();
 const PORT = 3001;
@@ -40,487 +37,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 const grpcClient = new GrpcClient('localhost:50051');
 
 // Swagger documentation setup
-const swaggerFilePath = path.join(__dirname, '../swagger.yaml');
-let swaggerDocument: any;
-
-if (fs.existsSync(swaggerFilePath)) {
-  swaggerDocument = YAML.load(swaggerFilePath);
-  console.log('✅ Swagger documentation loaded successfully');
-} else {
-  console.warn('⚠️ Swagger file not found at:', swaggerFilePath);
-  swaggerDocument = {
-    openapi: '3.0.0',
-    info: {
-      title: 'gRPC Client HTTP Server',
-      version: '1.0.0',
-      description: 'HTTP wrapper for gRPC device control operations',
-    },
-    servers: [
-      {
-        url: `http://localhost:${PORT}`,
-        description: 'Development server',
-      },
-    ],
-    paths: {
-      '/health': {
-        get: {
-          tags: ['Health'],
-          summary: 'Health check endpoint',
-          description: 'Returns server health status',
-          responses: {
-            '200': {
-              description: 'Server is healthy',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      status: { type: 'string', example: 'ok' },
-                      timestamp: { type: 'string', format: 'date-time' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/api/device/get-device-info': {
-        get: {
-          tags: ['Device Control'],
-          summary: 'Get device information',
-          description: 'Retrieve detailed device information',
-          responses: {
-            '200': {
-              description: 'Device information retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean' },
-                      error: {
-                        type: 'object',
-                        properties: {
-                          code: { type: 'string' },
-                          message: { type: 'string' },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/api/system/reboot': {
-        post: {
-          tags: ['System'],
-          summary: 'Reboot the system',
-          description: 'Reboots the device',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['reason'],
-                  properties: {
-                    reason: { type: 'string', description: 'Reason for reboot' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'Reboot initiated successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/wifi/get-wifi-details': {
-        get: {
-          tags: ['Network - WiFi'],
-          summary: 'Get WiFi details',
-          description: 'Retrieve current WiFi connection details',
-          responses: {
-            '200': {
-              description: 'WiFi details retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/device/get-aio-bar-id': {
-        get: {
-          tags: ['Device Control'],
-          summary: 'Get AIO Bar ID',
-          description: 'Retrieve AIO Bar ID',
-          responses: {
-            '200': {
-              description: 'AIO Bar ID retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/network/get-ethernet-details': {
-        get: {
-          tags: ['Network - Ethernet'],
-          summary: 'Get Ethernet details',
-          description: 'Retrieve Ethernet connection details',
-          responses: {
-            '200': {
-              description: 'Ethernet details retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/wifi/scan-wifi': {
-        get: {
-          tags: ['Network - WiFi'],
-          summary: 'Scan WiFi networks',
-          description: 'Scan for available WiFi networks',
-          responses: {
-            '200': {
-              description: 'WiFi networks scanned successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/wifi/disconnect-wifi': {
-        post: {
-          tags: ['Network - WiFi'],
-          summary: 'Disconnect WiFi network',
-          description: 'Disconnect from a WiFi network',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['id'],
-                  properties: {
-                    id: { type: 'string', description: 'WiFi network ID' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'Disconnected successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/wifi/connect-wifi': {
-        post: {
-          tags: ['Network - WiFi'],
-          summary: 'Connect to WiFi network',
-          description: 'Connect to a WiFi network with SSID and password',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['ssid', 'password'],
-                  properties: {
-                    ssid: { type: 'string', description: 'WiFi SSID' },
-                    password: { type: 'string', description: 'WiFi password' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'Connected successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/datetime/get-datetime': {
-        get: {
-          tags: ['DateTime'],
-          summary: 'Get current date and time',
-          description: 'Retrieve current device date and time',
-          responses: {
-            '200': {
-              description: 'DateTime retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/datetime/set-datetime': {
-        post: {
-          tags: ['DateTime'],
-          summary: 'Set date and time',
-          description: 'Set device date and time',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['datetime'],
-                  properties: {
-                    datetime: { type: 'string', format: 'date-time', description: 'DateTime value' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'DateTime set successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/timezone/list-timezones': {
-        get: {
-          tags: ['Timezone'],
-          summary: 'List all timezones',
-          description: 'Get list of available timezones',
-          responses: {
-            '200': {
-              description: 'Timezones listed successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/timezone/get-timezone': {
-        get: {
-          tags: ['Timezone'],
-          summary: 'Get current timezone',
-          description: 'Retrieve current device timezone',
-          responses: {
-            '200': {
-              description: 'Timezone retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/timezone/set-timezone': {
-        post: {
-          tags: ['Timezone'],
-          summary: 'Set timezone',
-          description: 'Set device timezone',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['timezone'],
-                  properties: {
-                    timezone: { type: 'string', description: 'Timezone identifier' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'Timezone set successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/ntp/get-ntp-server': {
-        get: {
-          tags: ['NTP'],
-          summary: 'Get NTP server',
-          description: 'Retrieve current NTP server',
-          responses: {
-            '200': {
-              description: 'NTP server retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/ntp/set-ntp-server': {
-        post: {
-          tags: ['NTP'],
-          summary: 'Set NTP server',
-          description: 'Set NTP server address',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['ntpserver'],
-                  properties: {
-                    ntpserver: { type: 'string', description: 'NTP server address' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'NTP server set successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/ntp/get-ntp-enable': {
-        get: {
-          tags: ['NTP'],
-          summary: 'Get NTP enable status',
-          description: 'Check if NTP is enabled',
-          responses: {
-            '200': {
-              description: 'NTP status retrieved successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-      '/api/ntp/set-ntp-enable': {
-        post: {
-          tags: ['NTP'],
-          summary: 'Set NTP enable status',
-          description: 'Enable or disable NTP',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['enable'],
-                  properties: {
-                    enable: { type: 'boolean', description: 'Enable/disable NTP' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'NTP status set successfully',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '400': {
-              description: 'Invalid request',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-            '500': {
-              description: 'Server error',
-              content: { 'application/json': { schema: { type: 'object' } } },
-            },
-          },
-        },
-      },
-    },
-  };
-}
-
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Health check endpoint
@@ -537,8 +53,17 @@ app.get('/api/getDetails', async (req: Request, res: Response) => {
       // 'get-wifi-details',
       // 'get-aio-bar-id',
       // 'get-ethernet-details',
-      'get-datetime',
+      // 'get-datetime',
 
+      // speaker details -----
+      // 'get-active-speaker',
+      // 'get-controller-device',
+      // 'get-extension-mic-device',
+      // 'get-monitors',
+      'get-camera-preview',
+
+
+      
       {},
     );
     res.json(response);
@@ -614,11 +139,8 @@ app.get('/api/wifi/scan-wifi', async (req: Request, res: Response) => {
 
 app.post('/api/wifi/disconnect-wifi', async (req: Request, res: Response) => {
   try {
-    const { id } = req.body;
-    if (!id) {
-      return res.status(400).json({ error: 'WiFi network ID is required' });
-    }
-    const response = await grpcClient.handleRequest('command-control', 'disconnect-wifi', { id });
+    // const { id } = req.body;
+    const response = await grpcClient.handleRequest('command-control', 'disconnect-wifi');
     res.json(response);
   } catch (error) {
     res.status(500).json({
@@ -775,6 +297,477 @@ app.post('/api/ntp/set-ntp-enable', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Enable flag is required' });
     }
     const response = await grpcClient.handleRequest('command-control', 'set-ntp-enable', { enable });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Audio/Speaker APIs
+app.get('/api/audio/get-active-speaker', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-active-speaker', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.get('/api/audio/get-sound-cards', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-sound-cards', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.get('/api/audio/get-speaker-mute', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-speaker-mute', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/audio/set-speaker-mute', async (req: Request, res: Response) => {
+  try {
+    const { mute } = req.body;
+    if (mute === undefined) {
+      return res.status(400).json({ error: 'Mute flag is required' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-speaker-mute', { mute });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.get('/api/audio/get-speaker-volume', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-speaker-volume', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/audio/set-speaker-volume', async (req: Request, res: Response) => {
+  try {
+    const { volume } = req.body;
+    if (volume === undefined) {
+      return res.status(400).json({ error: 'Volume is required' });
+    }
+    if (volume < 0 || volume > 100) {
+      return res.status(400).json({ error: 'Volume must be between 0 and 100' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-speaker-volume', { volume });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Microphone APIs (Section 2) - Input EQ only, no mute API
+app.get('/api/microphone/get-input-eq', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-input-eq', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/microphone/set-input-eq', async (req: Request, res: Response) => {
+  try {
+    const { bands } = req.body;
+    if (!bands || !Array.isArray(bands)) {
+      return res.status(400).json({ error: 'EQ bands array is required' });
+    }
+    // Validate gain range for each band
+    for (const band of bands) {
+      if (band.gain < -6 || band.gain > 6) {
+        return res.status(400).json({ error: 'EQ gain must be between -6 and +6 dB' });
+      }
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-input-eq', { bands });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Audio Fence APIs (Section 3) - Separate from Microphone
+app.get('/api/audio-fence/get-parameters', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-audio-fence-parameters', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/audio-fence/enable', async (req: Request, res: Response) => {
+  try {
+    const { fenceAngle } = req.body;
+    if (!fenceAngle || fenceAngle.start === undefined || fenceAngle.end === undefined) {
+      return res.status(400).json({ error: 'Fence angle with start and end is required' });
+    }
+    // Validate fence angle
+    const range = fenceAngle.end - fenceAngle.start;
+    if (fenceAngle.end <= fenceAngle.start) {
+      return res.status(400).json({ error: 'Fence angle end must be greater than start' });
+    }
+    if (range < 30 || range > 90) {
+      return res.status(400).json({ error: 'Fence angle range must be between 30 and 90 degrees' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'enable-audio-fence', { fenceAngle });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/audio-fence/disable', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'disable-audio-fence', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/audio-fence/set-angle', async (req: Request, res: Response) => {
+  try {
+    const { fenceAngle } = req.body;
+    if (!fenceAngle || fenceAngle.start === undefined || fenceAngle.end === undefined) {
+      return res.status(400).json({ error: 'Fence angle with start and end is required' });
+    }
+    // Validate fence angle
+    const range = fenceAngle.end - fenceAngle.start;
+    if (fenceAngle.end <= fenceAngle.start) {
+      return res.status(400).json({ error: 'Fence angle end must be greater than start' });
+    }
+    if (range < 30 || range > 90) {
+      return res.status(400).json({ error: 'Fence angle range must be between 30 and 90 degrees' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-fence-angle', { fenceAngle });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.get('/api/audio-fence/get-status', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-audio-fence-status', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Combined Audio Page API
+app.get('/api/audio/get-audio-page-status', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-audio-page-status', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// ============================================
+// CAMERA APIs
+// ============================================
+
+// Camera Device (Health/Availability)
+app.get('/api/camera/device', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-camera-device', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Camera Room State (Occupancy Detection)
+app.get('/api/camera/roomstate', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-occupant-detected-count', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Intelligent Video (Main Camera Settings)
+app.get('/api/camera/intelligentvideo', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-intelligent-video', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/intelligentvideo', async (req: Request, res: Response) => {
+  try {
+    const params = req.body;
+    if (!params || Object.keys(params).length === 0) {
+      return res.status(400).json({ error: 'At least one parameter is required' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-camera-mode', params);
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/mode', async (req: Request, res: Response) => {
+  try {
+    const { mode } = req.body;
+    if (mode === undefined) {
+      return res.status(400).json({ error: 'Mode is required' });
+    }
+    if (![0, 1, 2, 3].includes(mode)) {
+      return res.status(400).json({ error: 'Mode must be 0 (Manual), 1 (Auto Framing), 2 (Active Speaker), or 3 (Intelligent Focus)' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-camera-mode', { mode });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Video Fence APIs
+app.get('/api/camera/fence/status', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-video-fence-status', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/fence/enable', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'set-video-fence-enabled', { fenceEnabled: true });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/fence/disable', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'set-video-fence-enabled', { fenceEnabled: false });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/fence/coordinates', async (req: Request, res: Response) => {
+  try {
+    const { fenceCoordinates } = req.body;
+    if (!fenceCoordinates || !Array.isArray(fenceCoordinates)) {
+      return res.status(400).json({ error: 'fenceCoordinates array is required' });
+    }
+    // if (fenceCoordinates.length !== 4) {
+    //   return res.status(400).json({ error: 'fenceCoordinates must contain exactly 4 points' });
+    // }
+    for (const coord of fenceCoordinates) {
+      if (coord.x === undefined || coord.y === undefined) {
+        return res.status(400).json({ error: 'Each coordinate must have x and y values' });
+      }
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-video-fence-coordinates', { fenceCoordinates });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/autoframe', async (req: Request, res: Response) => {
+  try {
+    const { framePadding, transitionSpeed } = req.body;
+    if (framePadding === undefined && transitionSpeed === undefined) {
+      return res.status(400).json({ error: 'At least one of framePadding or transitionSpeed is required' });
+    }
+    const autoframe: any = {};
+    if (framePadding !== undefined) {
+      if (![0, 1, 2].includes(framePadding)) {
+        return res.status(400).json({ error: 'framePadding must be 0 (Tight), 1 (Normal), or 2 (Wide)' });
+      }
+      autoframe.framePadding = framePadding;
+    }
+    if (transitionSpeed !== undefined) {
+      if (transitionSpeed < 0) {
+        return res.status(400).json({ error: 'transitionSpeed must be a positive number (milliseconds)' });
+      }
+      autoframe.transitionSpeed = transitionSpeed;
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-auto-frame-settings', { autoframe });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/talkerswitch', async (req: Request, res: Response) => {
+  try {
+    const { framePadding, level, time } = req.body;
+    if (framePadding === undefined && level === undefined && time === undefined) {
+      return res.status(400).json({ error: 'At least one of framePadding, level, or time is required' });
+    }
+    const talkerswitch: any = {};
+    if (framePadding !== undefined) {
+      if (![0, 1, 2].includes(framePadding)) {
+        return res.status(400).json({ error: 'framePadding must be 0 (Tight), 1 (Normal), or 2 (Wide)' });
+      }
+      talkerswitch.framePadding = framePadding;
+    }
+    if (level !== undefined) talkerswitch.level = level;
+    if (time !== undefined) talkerswitch.time = time;
+    const response = await grpcClient.handleRequest('command-control', 'set-talker-switch-settings', { talkerswitch });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/intelligentfocus', async (req: Request, res: Response) => {
+  try {
+    const { peopleShown, roomViewEnabled } = req.body;
+    if (peopleShown === undefined && roomViewEnabled === undefined) {
+      return res.status(400).json({ error: 'At least one of peopleShown or roomViewEnabled is required' });
+    }
+    const intelligentfocus: any = {};
+    if (peopleShown !== undefined) intelligentfocus.peopleShown = peopleShown;
+    if (roomViewEnabled !== undefined) intelligentfocus.roomViewEnabled = roomViewEnabled;
+    const response = await grpcClient.handleRequest('command-control', 'set-intelligent-focus-settings', { intelligentfocus });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// External Video (Camera Preview)
+app.get('/api/camera/externalvideo', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-camera-preview', {});
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+app.post('/api/camera/externalvideo', async (req: Request, res: Response) => {
+  try {
+    const { enable } = req.body;
+    if (enable === undefined) {
+      return res.status(400).json({ error: 'enable flag is required' });
+    }
+    const response = await grpcClient.handleRequest('command-control', 'set-camera-preview', { enable });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLIENT_ERROR', message: error instanceof Error ? error.message : 'Unknown error' },
+    });
+  }
+});
+
+// Combined Camera Page Data API
+app.get('/api/camera/page-data', async (req: Request, res: Response) => {
+  try {
+    const response = await grpcClient.handleRequest('command-control', 'get-camera-page-data', {});
     res.json(response);
   } catch (error) {
     res.status(500).json({
