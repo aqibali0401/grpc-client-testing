@@ -3,8 +3,8 @@ import * as protoLoader from '@grpc/proto-loader';
 import { join, resolve } from 'path';
 
 // Load proto definition - using process.cwd() for correct path resolution
-// The proto file is located at: ../Edge-moduler/proto/edge.proto from grpc-client root
-const PROTO_PATH = resolve(process.cwd(), '../Edge-moduler/proto/edge.proto');
+// The proto file is located at: ../Edge-control-plane/proto/edge.proto from grpc-client root
+const PROTO_PATH = resolve(process.cwd(), '../Edge-control-plane/proto/edge.proto');
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,

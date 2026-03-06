@@ -112,6 +112,43 @@ app.get('/api/device/get-aio-bar-id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Claim Device Registration
+ * Sends access level code to Edge Control Plane
+ * 
+ * Request: POST /api/device/claim-registration
+ * Body: { "accessLevel": 100 }  // 100=admin, 200=technician, 300=viewer
+ */
+app.post('/api/device/claim-registration', async (req: Request, res: Response) => {
+  try {
+    const { accessLevel } = req.body;
+
+    if (!accessLevel) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'accessLevel is required' },
+      });
+    }
+
+    // Call Edge Control Plane via gRPC
+    const response = await grpcClient.handleRequest(
+      'command-control',               // module
+      'claim-registration',             // action
+      { accessLevel }                   // payload
+    );
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { 
+        code: 'CLIENT_ERROR', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      },
+    });
+  }
+});
+
 // WiFi APIs
 app.get('/api/wifi/get-wifi-details', async (req: Request, res: Response) => {
   try {

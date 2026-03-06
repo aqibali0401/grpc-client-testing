@@ -81,6 +81,36 @@ const devicePaths = {
       },
     },
   },
+  '/api/device/claim-registration': {
+    post: {
+      tags: ['Device Control'],
+      summary: 'Claim Device Registration',
+      description: 'Sends access level code to Edge Control Plane for device registration',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['accessLevel'],
+              properties: {
+                accessLevel: {
+                  type: 'number',
+                  description: 'Access level code (100=admin, 200=technician, 300=viewer)',
+                  example: 100,
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        '200': successResponse('Device registration claimed successfully'),
+        '400': errorResponse('Invalid request - accessLevel is required'),
+        '500': errorResponse('Server error'),
+      },
+    },
+  },
 };
 
 // System APIs
